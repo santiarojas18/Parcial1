@@ -5,7 +5,9 @@
  */
 package edu.eci.arsw.math;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Scanner;
 
 /**
  *
@@ -14,9 +16,68 @@ import java.util.Arrays;
 public class Main {
 
     public static void main(String a[]) {
-        System.out.println(bytesToHex(PiDigits.getDigits(0, 10)));
-        System.out.println(bytesToHex(PiDigits.getDigits(1, 100)));
-        System.out.println(bytesToHex(PiDigits.getDigits(1, 1000000)));
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("Ingrese la cantidad de dígitos de pi que quiere conocer");
+        int digitsAmount = scanner.nextInt();
+        System.out.println("Ingrese la cantidad de hilos que quiere crear");
+        int n = scanner.nextInt();
+
+        Boolean lock = true;
+        ArrayList<PiThread> piThreads = new ArrayList<PiThread>();
+        double intervalsSize = (double) digitsAmount/n;
+        int finalInterval = (int) intervalsSize;
+        if ((intervalsSize - finalInterval / n) > 0.5) {
+            finalInterval++;
+        }
+        int begin = 0;
+        int end = 0;
+        for (int i = 0; i<n; i++) {
+            begin = i * finalInterval;
+            end = begin + finalInterval;
+            if (i == n - 1) {
+                end = digitsAmount;
+            }
+            PiThread thread = new PiThread(begin, end, lock);
+            piThreads.add(thread);
+            thread.start();
+        }
+
+        boolean running = true;
+        while (running){
+            try {
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            if (Thread.activeCount() == 2){
+                running = false;
+            } else {
+
+                Scanner scannerEnter = new Scanner(System.in);
+                System.out.println("Para seguir buscando los dígitos de pi, presione enter.");
+                String letter = scannerEnter.nextLine();
+                if (!letter.equals("")) {
+                    running = false;
+
+                } else {
+                    synchronized (lock) {
+                        lock.notifyAll();
+                    }
+                }
+            }
+        }
+
+        byte[] result = new byte[digitsAmount];
+        ArrayList<Byte> resultArray= new ArrayList<Byte>();
+        for (PiThread piThread : piThreads) {
+            try {
+                piThread.join();
+                resultArray.addAll(piThread.getDigitsArray());
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        System.out.println(bytesToHex(toArray(resultArray)));
     }
 
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
@@ -36,4 +97,13 @@ public class Main {
         return sb.toString();
     }
 
+    public static byte[] toArray(ArrayList<Byte> resultArray) {
+        byte[] results = new byte[resultArray.size()];
+        for (int i=0; i<resultArray.size();i++) {
+            results[i] = resultArray.get(i);
+        }
+        return results;
+    }
+
 }
+
