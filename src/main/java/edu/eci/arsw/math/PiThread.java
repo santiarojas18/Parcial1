@@ -51,20 +51,19 @@ public class PiThread extends Thread{
                     } catch (InterruptedException e) {
                     }
                 }
-            } else {
-                if (i % DigitsPerSum == 0) { //8. Hace el cálculo de un dígito
-                    sum = 4 * PiDigits.sum(1, start)
-                            - 2 * PiDigits.sum(4, start)
-                            - PiDigits.sum(5, start)
-                            - PiDigits.sum(6, start);
-
-                    start += DigitsPerSum;
-                }
-
-                sum = 16 * (sum - Math.floor(sum));
-                digitsArray[i] = (byte) sum; //9. Agrega el dígito calculado a la respuesta
-                digits.add((byte) sum);
             }
+            if (i % DigitsPerSum == 0) { //8. Hace el cálculo de un dígito
+                sum = 4 * PiDigits.sum(1, start)
+                        - 2 * PiDigits.sum(4, start)
+                        - PiDigits.sum(5, start)
+                        - PiDigits.sum(6, start);
+
+                start += DigitsPerSum;
+            }
+
+            sum = 16 * (sum - Math.floor(sum));
+            digitsArray[i] = (byte) sum; //9. Agrega el dígito calculado a la respuesta
+            digits.add((byte) sum);
         }
     }
 
