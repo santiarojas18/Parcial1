@@ -24,9 +24,9 @@ public class Main {
 
         Boolean lock = true;
         ArrayList<PiThread> piThreads = new ArrayList<PiThread>();
-        double intervalsSize = (double) digitsAmount/n;
-        int finalInterval = (int) intervalsSize;
-        if ((intervalsSize - finalInterval / n) > 0.5) {
+        double intervalsSize = (double) digitsAmount/n; //1. Calcula cuantos dígitos debe calcular cada hilo
+        int finalInterval = (int) intervalsSize; //2. Lo castea a entero para ver el caso en que la división no sea exacta
+        if ((intervalsSize - finalInterval) > 0.5) { //3. Se hace esta resta para tratar de hacer una distribución más justa de cuantos dígitos calcula cada uno
             finalInterval++;
         }
         int begin = 0;
@@ -34,10 +34,10 @@ public class Main {
         for (int i = 0; i<n; i++) {
             begin = i * finalInterval;
             end = begin + finalInterval;
-            if (i == n - 1) {
+            if (i == n - 1) { //4. Si es el último hilo, mira cuantos digitos faltan por calcular para que no falte ninguno por calcular ni tampoco calcule de más
                 end = digitsAmount;
             }
-            PiThread thread = new PiThread(begin, end, lock);
+            PiThread thread = new PiThread(begin, end-begin, lock); //5. Para crear un hilo se le envía el begin que se va recalculando en cada iteración, la cantidad de digitos a calcular por hilo se calcula de la resta entre los índices de inicio y final, junto con el monitor para controlar la dormida y despertada de los hilos
             piThreads.add(thread);
             thread.start();
         }
@@ -45,7 +45,7 @@ public class Main {
         boolean running = true;
         while (running){
             try {
-                Thread.sleep(5000);
+                Thread.sleep(5000); //6. Se duerme el hilo principal durante 5 segundos para que todos los otros hilos se ejecuten en esos 5 segundos (Cada hilo sabe cuando dormirse) y no imprima el mensaje que espera un enter para continuar
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -56,28 +56,26 @@ public class Main {
                 Scanner scannerEnter = new Scanner(System.in);
                 System.out.println("Para seguir buscando los dígitos de pi, presione enter.");
                 String letter = scannerEnter.nextLine();
-                if (!letter.equals("")) {
+                if (!letter.equals("")) { //7. Verifica que el usuario quiere seguir impriendo dígitos, esto lo hace revisando que el input que ingrese no sea diferente de enter
                     running = false;
 
                 } else {
                     synchronized (lock) {
-                        lock.notifyAll();
+                        lock.notifyAll(); //8. Si el usuario ingresó enter entonces debe notificar a todos los hilos que estaban dormidos que se despierten para que sigan su ejecución y terminen de calcular los dígitos
                     }
                 }
             }
         }
-
-        byte[] result = new byte[digitsAmount];
         ArrayList<Byte> resultArray= new ArrayList<Byte>();
         for (PiThread piThread : piThreads) {
             try {
                 piThread.join();
-                resultArray.addAll(piThread.getDigitsArray());
+                resultArray.addAll(piThread.getDigitsArray()); //9. Para concatenar los dígitos calculados por cada hilo, se recorre en orden el arreglo con los hilos y se agregan a un arreglo en el cual se almacena la respuesta final
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }
-        System.out.println(bytesToHex(toArray(resultArray)));
+        System.out.println(bytesToHex(toArray(resultArray))); //10. Imprime la respuesta una vez ya todos hayan terminado de calcular los dígitos
     }
 
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();
@@ -92,7 +90,7 @@ public class Main {
         StringBuilder sb=new StringBuilder();
         for (int i=0;i<hexChars.length;i=i+2){
             //sb.append(hexChars[i]);
-            sb.append(hexChars[i+1]);            
+            sb.append(hexChars[i+1]);
         }
         return sb.toString();
     }
@@ -106,4 +104,3 @@ public class Main {
     }
 
 }
-

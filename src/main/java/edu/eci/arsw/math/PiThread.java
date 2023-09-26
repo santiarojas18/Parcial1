@@ -11,43 +11,67 @@ public class PiThread extends Thread{
     private ArrayList<Byte> digits;
 
     private boolean running;
+
+    private static int DigitsPerSum = 8;
+    private static double Epsilon = 1e-17;
+
+    private byte[] digitsArray;
     public PiThread (int start, int count, boolean lock) {
         this.start = start;
         this.count = count;
         this.lock = lock;
         digits = new ArrayList<Byte>();
         running = true;
+        digitsArray = new byte[count];
+        System.out.println("ini: "+start+" Count: "+count);
     }
 
     public void run () {
-        long startTime = System.currentTimeMillis();
+        if (start < 0) {
+            throw new RuntimeException("Invalid Interval");
+        }
+
+        if (count < 0) {
+            throw new RuntimeException("Invalid Interval");
+        }
+
+        double sum = 0;
+
+        long startTime = System.currentTimeMillis(); //1. Obtiene el tiempo en el que el hilo se empieza a ejecutar
         long current;
-        for (int i = start;i<count; i++) {
-            current = System.currentTimeMillis();
-            if (current - startTime >= 5000) {
-                System.out.println(Main.bytesToHex(getDigits()));
+
+        for (int i = 0;i<count; i++) {
+            current = System.currentTimeMillis(); //2. Cada vez que se itera se debe pedir el tiempo actual para hacer la resta entre el tiempo de inicio y el actual, con esto, se sabe cuantos segundos se ha transcurrido
+            if (current - startTime >= 5000) { //3. Verifica si el tiempo transcurrido es de 5 segundos
+                System.out.println(Main.bytesToHex(digitsArray)); //4. Si ya pasó 5 segundos muestra los dígitos que ha calculado antes de pasar a dormirse
                 synchronized (lock) {
                     try {
-                        lock.wait();
-                        startTime = System.currentTimeMillis();
+                        lock.wait(); //5. El hilo se duerme a través del monitor compartido, y solo será despertado por el hilo main el cual espera hasta que el usuario ingrese enter
+                        startTime = System.currentTimeMillis(); //6. En caso de que el hilo main lo despierte, aquí es donde continua su ejecución, es por esto que se vuelve a preguntar el tiempo de inicio, porque es cuando se reanuda el hilo y se debe volver a contar 5 segundos
                     } catch (InterruptedException e) {
-
                     }
                 }
             } else {
-                digits.add(PiDigits.getDigits(i, count)[0]);
+                if (i % DigitsPerSum == 0) { //7. Hace el cálculo de un dígito
+                    sum = 4 * PiDigits.sum(1, start)
+                            - 2 * PiDigits.sum(4, start)
+                            - PiDigits.sum(5, start)
+                            - PiDigits.sum(6, start);
+
+                    start += DigitsPerSum;
+                }
+
+                sum = 16 * (sum - Math.floor(sum));
+                digitsArray[i] = (byte) sum; //8. Agrega el dígito calculado a la respuesta
+                digits.add((byte) sum);
             }
         }
-        //while (running) {
-        //}
     }
 
+
+
     public byte[] getDigits () {
-        byte[] results = new byte[digits.size()];
-        for (int i=0; i<digits.size();i++) {
-            results[i] = digits.get(i);
-        }
-        return results;
+        return digitsArray;
     }
 
     public ArrayList<Byte> getDigitsArray () {
@@ -57,4 +81,5 @@ public class PiThread extends Thread{
     public void setRunning (boolean newRunning) {
         running = newRunning;
     }
+
 }
